@@ -55,12 +55,6 @@ Demos are deduplicated by SHA-256. Clips are kept as WAV, so any match can be ch
 
 .NET 9 minimal API · SQLite · [DemoFile](https://github.com/saul/demofile-net) · Concentus (Opus) · ONNX Runtime · vanilla JS + Tailwind · Docker
 
-## Known issues
-
-- FACEIT import is broken: demo downloads need a Downloads API key, and the old CDN hosts no longer resolve.
-- New CS2 patches can break demo parsing until DemoFile is updated.
-- No auth, open CORS, and `DELETE /api/data` wipes the database. Local use only.
-
 ## Data
 
 Voice recordings and SteamIDs are personal data. The database, audio and demos are not in this repo.
