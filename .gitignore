@@ -1,0 +1,17 @@
+# Белый список: в репозиторий попадает только то, что явно перечислено ниже.
+# Новые файлы по умолчанию остаются локальными.
+/*
+!/.gitignore
+!/.dockerignore
+!/.env.example
+!/README.md
+!/Dockerfile
+!/docker-compose.yml
+!/cs2-voice-matcher.csproj
+!/Program.cs
+!/wwwroot/
+
+!/Core/
+/Core/*
+!/Core/Models.cs
+!/Core/DatabaseSchema.cs

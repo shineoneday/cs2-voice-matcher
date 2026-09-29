@@ -1,0 +1,25 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/data
+      - ./uploads:/app/uploads
+    restart: unless-stopped
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: 8G
+        reservations:
+          cpus: "2"
+          memory: 4G
+    environment:
+      - DOTNET_GCHeapCount=8
+      - DOTNET_gcServer=1
+      - AUDIO_PATH=/data/audio
+      - FACEIT_TOKEN=${FACEIT_TOKEN:-}

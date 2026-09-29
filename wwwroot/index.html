@@ -1,0 +1,274 @@
+﻿<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CS2 Voice Matcher</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+          colors: {
+            bg: '#141417', surface: '#1c1c21', 'surface-2': '#26262b',
+            border: '#333338', text: '#e4e4e8', 'text-dim': '#8888a0',
+            accent: '#569cd6', 'accent-hover': '#6bb0e8',
+            success: '#4eb748', error: '#dc5044',
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="bg-bg text-text font-sans min-h-screen">
+
+  <audio id="audio-player" class="hidden"></audio>
+
+  <!-- Header -->
+  <header class="fixed top-0 left-0 right-0 z-50 bg-surface border-b border-border h-14 flex items-center px-6 justify-between">
+    <div class="flex items-center gap-3">
+      <svg style="width:24px;height:24px;flex-shrink:0" class="text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+        <line x1="12" y1="19" x2="12" y2="23"/>
+        <line x1="8" y1="23" x2="16" y2="23"/>
+      </svg>
+      <span class="text-sm font-bold tracking-widest text-text">CS2 VOICE MATCHER</span>
+    </div>
+    <!-- Global Search -->
+    <div class="flex items-center gap-4">
+      <div class="global-search-wrapper">
+        <svg class="global-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="global-search-input" class="global-search-input" placeholder="Search players..." />
+      </div>
+      <div id="stats-bar" class="text-xs text-text-dim flex items-center gap-4">
+        <span id="stat-demos">0 demos</span>
+        <span class="text-border">|</span>
+        <span id="stat-players">0 players</span>
+        <span class="text-border">|</span>
+        <span id="stat-voice-matches">0 voice matches</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main container -->
+  <main class="pt-14">
+    <nav class="bg-surface border-b border-border px-6">
+      <div class="flex gap-1">
+        <button class="tab-btn active" data-tab="upload">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Upload
+        </button>
+        <button class="tab-btn" data-tab="matches">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          Matches
+        </button>
+        <button class="tab-btn" data-tab="players">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Players
+        </button>
+        <button class="tab-btn" data-tab="identity-groups">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="5" r="2"/><circle cx="19" cy="19" r="2"/><circle cx="5" cy="19" r="2"/><line x1="14.5" y1="9.5" x2="17.5" y2="6.5"/><line x1="9.5" y1="9.5" x2="6.5" y2="6.5"/><line x1="14.5" y1="14.5" x2="17.5" y2="17.5"/><line x1="9.5" y1="14.5" x2="6.5" y2="17.5"/></svg>
+          Identity Groups
+        </button>
+        <button class="tab-btn" data-tab="compare">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"/><path d="m15 9 6-6"/></svg>
+          Compare
+        </button>
+      </div>
+    </nav>
+
+    <div class="p-6">
+
+      <!-- Upload Tab -->
+      <div id="tab-upload" class="tab-content">
+        <div class="max-w-3xl mx-auto">
+          <h2 class="text-lg font-semibold mb-1">Upload Demos</h2>
+          <p class="text-sm text-text-dim mb-6">Drag and drop CS2 demo files or import from FACEIT match URL.</p>
+
+          <div class="card p-4 mb-6">
+            <div class="flex items-center gap-2 mb-3">
+              <svg class="w-5 h-5 text-[#ff5500]" viewBox="0 0 24 24" fill="currentColor"><path d="M24 5.009V19.25c0 .69-.56 1.25-1.25 1.25H1.25C.56 20.5 0 19.94 0 19.25V5.009h24zM1.5 6.516V18.75c0 .138.112.25.25.25h20.5a.25.25 0 0 0 .25-.25V6.516L12.37 14.14a.75.75 0 0 1-.74 0L1.5 6.516zM22.5 4.5h-21L12 11.56 22.5 4.5z"/></svg>
+              <h3 class="text-sm font-semibold">Import from FACEIT</h3>
+            </div>
+            <div class="flex gap-2">
+              <input type="text" id="faceit-url-input" class="input-field flex-1" placeholder="https://www.faceit.com/en/cs2/room/1-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+              <button id="btn-faceit-import" class="btn-primary whitespace-nowrap">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Import
+              </button>
+            </div>
+            <div id="faceit-status" class="mt-3 hidden">
+              <div id="faceit-info" class="text-sm"></div>
+              <div id="faceit-progress" class="mt-2 hidden">
+                <div class="w-full bg-surface-2 rounded-full h-1.5">
+                  <div id="faceit-bar" class="bg-accent h-1.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="drop-zone" class="drop-zone">
+            <svg class="w-10 h-10 text-text-dim mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <p class="text-sm text-text-dim mb-1">Drop .dem / .dem.zst files here or click to browse</p>
+            <p class="text-xs text-text-dim opacity-60">Supports multiple files</p>
+            <input type="file" id="file-input" class="hidden" multiple accept=".dem,.zst" />
+          </div>
+
+          <div id="file-list" class="mt-4 space-y-2 hidden"></div>
+          <div id="upload-actions" class="mt-4 flex items-center gap-3 hidden">
+            <button id="btn-upload-all" class="btn-primary"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Upload All</button>
+            <button id="btn-process" class="btn-secondary hidden"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg> Process All</button>
+            <button id="btn-clear-files" class="btn-secondary">Clear</button>
+          </div>
+
+          <div id="processing-status" class="mt-6 hidden">
+            <div class="card p-4">
+              <div class="flex items-center gap-3 mb-3"><div class="spinner"></div><span id="processing-text" class="text-sm">Processing...</span></div>
+              <div class="w-full bg-surface-2 rounded-full h-1.5"><div id="processing-bar" class="bg-accent h-1.5 rounded-full transition-all duration-300" style="width: 0%"></div></div>
+            </div>
+          </div>
+
+          <div id="upload-empty" class="empty-state mt-12">
+            <svg class="w-12 h-12 text-text-dim opacity-40 mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <p class="text-sm text-text-dim">No demos uploaded yet</p>
+            <p class="text-xs text-text-dim opacity-60 mt-1">Upload .dem files to get started</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Matches Tab -->
+      <div id="tab-matches" class="tab-content hidden">
+        <div class="max-w-5xl mx-auto">
+          <h2 class="text-lg font-semibold mb-1">Matches</h2>
+          <p class="text-sm text-text-dim mb-6">Processed CS2 game demos. Players with voice matches in other accounts are highlighted.</p>
+          <div id="matches-loading" class="hidden flex justify-center py-12"><div class="spinner"></div></div>
+          <div id="matches-list" class="space-y-4"></div>
+          <div id="matches-empty" class="empty-state mt-12 hidden">
+            <svg class="w-12 h-12 text-text-dim opacity-40 mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            <p class="text-sm text-text-dim">No demos processed yet</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Players Tab -->
+      <div id="tab-players" class="tab-content hidden">
+        <div class="max-w-5xl mx-auto">
+          <div id="players-search-view">
+            <h2 class="text-lg font-semibold mb-1">Players</h2>
+            <p class="text-sm text-text-dim mb-6">Browse and search all extracted player voice profiles.</p>
+            <div class="flex gap-3 mb-6">
+              <input type="text" id="player-search-input" class="input-field flex-1" placeholder="Search by name or SteamID..." />
+              <button id="btn-player-search" class="btn-primary">Search</button>
+            </div>
+            <div id="players-loading" class="hidden flex justify-center py-12"><div class="spinner"></div></div>
+            <div id="player-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+            <div id="players-empty" class="empty-state mt-12 hidden">
+              <svg class="w-12 h-12 text-text-dim opacity-40 mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+              <p class="text-sm text-text-dim">No players found</p>
+            </div>
+          </div>
+
+          <div id="player-detail" class="hidden">
+            <button id="btn-back-players" class="btn-secondary mb-6 text-sm">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+              Back to Players
+            </button>
+            <div id="player-header" class="mb-6"></div>
+            <div id="player-stats" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6"></div>
+            <div class="flex items-center gap-3 mb-6">
+              <button id="btn-find-similar" class="btn-primary text-sm">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                Find Similar
+              </button>
+              <button id="btn-open-steam" class="btn-secondary text-sm">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                Open Steam
+              </button>
+            </div>
+            <div class="mb-6">
+              <h3 class="text-sm font-semibold mb-3">Demo Appearances</h3>
+              <div id="player-demos-table"></div>
+            </div>
+            <div id="player-similar-section" class="mb-6">
+              <h3 class="text-sm font-semibold mb-3">Similar Voices</h3>
+              <div id="similar-loading" class="hidden flex justify-center py-6"><div class="spinner"></div></div>
+              <div id="similar-results"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Identity Groups Tab -->
+      <div id="tab-identity-groups" class="tab-content hidden">
+        <div class="max-w-5xl mx-auto">
+          <h2 class="text-lg font-semibold mb-1">Identity Groups</h2>
+          <p class="text-sm text-text-dim mb-6">Groups of accounts likely belonging to the same person, ranked by confidence.</p>
+          <div class="card p-4 mb-6">
+            <div class="flex flex-wrap items-end gap-6">
+              <div class="flex-1 min-w-[200px]">
+                <label class="text-xs text-text-dim mb-1.5 block">Similarity Threshold</label>
+                <div class="flex items-center gap-3">
+                  <input type="range" id="group-threshold" class="range-input flex-1" min="0.70" max="0.95" step="0.01" value="0.85" />
+                  <span id="group-threshold-value" class="text-sm font-mono text-accent w-12 text-right">85%</span>
+                </div>
+              </div>
+              <button id="btn-compute-groups" class="btn-primary">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                Compute
+              </button>
+            </div>
+          </div>
+          <div id="groups-loading" class="hidden flex justify-center py-12"><div class="spinner"></div></div>
+          <div id="groups-list" class="space-y-4"></div>
+          <div id="groups-empty" class="empty-state mt-12 hidden">
+            <svg class="w-12 h-12 text-text-dim opacity-40 mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><circle cx="12" cy="12" r="3"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="5" r="2"/><circle cx="19" cy="19" r="2"/><circle cx="5" cy="19" r="2"/></svg>
+            <p class="text-sm text-text-dim">No identity groups computed</p>
+            <p class="text-xs text-text-dim opacity-60 mt-1">Set a threshold and click Compute</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Compare Tab -->
+      <div id="tab-compare" class="tab-content hidden">
+        <div class="max-w-5xl mx-auto">
+          <h2 class="text-lg font-semibold mb-1">Compare Players</h2>
+          <p class="text-sm text-text-dim mb-6">Side-by-side voice comparison between two players.</p>
+          <div id="compare-content">
+            <div class="empty-state mt-12">
+              <svg class="w-12 h-12 text-text-dim opacity-40 mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"/><path d="m15 9 6-6"/></svg>
+              <p class="text-sm text-text-dim">Select two players to compare</p>
+              <p class="text-xs text-text-dim opacity-60 mt-1">Use "Compare" buttons in player detail or identity groups</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Danger Zone -->
+  <footer class="max-w-3xl mx-auto px-6 pb-12 pt-6">
+    <div class="card p-4 border-error/30">
+      <h3 class="text-sm font-semibold text-error mb-2">Danger Zone</h3>
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs text-text-dim">Reprocess all profiles from stored audio (after algorithm update)</span>
+        <button id="btn-reprocess" class="btn-secondary text-xs text-accent border-accent/30 hover:border-accent">Reprocess All</button>
+      </div>
+      <div class="flex items-center justify-between">
+        <span class="text-xs text-text-dim">Delete all data (demos, profiles, voice prints)</span>
+        <button id="btn-delete-data" class="btn-secondary text-xs text-error border-error/30 hover:border-error">Delete All Data</button>
+      </div>
+    </div>
+  </footer>
+
+  <div id="toast-container" class="fixed bottom-6 right-6 z-[100] flex flex-col gap-2"></div>
+  <script src="app.js"></script>
+</body>
+</html>

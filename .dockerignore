@@ -1,0 +1,10 @@
+data/
+uploads/
+uploads_old/
+models/
+**/*.dem
+**/*.dem.zst
+bin/
+obj/
+.env
+.git/
