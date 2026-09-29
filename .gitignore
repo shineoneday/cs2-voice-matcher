@@ -1,5 +1,4 @@
-# Белый список: в репозиторий попадает только то, что явно перечислено ниже.
-# Новые файлы по умолчанию остаются локальными.
+# Allowlist: only the paths below are tracked, everything else stays local.
 /*
 !/.gitignore
 !/.dockerignore

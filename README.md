@@ -1,90 +1,70 @@
 # CS2 Voice Matcher
 
-Веб-приложение, которое достаёт голосовой чат из демок CS2 и ищет разные аккаунты с одним и тем же голосом. Пример задачи: понять, что игрок на новом аккаунте тот же, кого уже видели под другим SteamID.
+Extracts voice chat from CS2 demos and finds accounts that share the same voice, e.g. one player behind several SteamIDs.
 
-## Чего нет в репозитории
+> [!IMPORTANT]
+> Partial source release. The processing core (demo parsing, speaker embeddings, matching, storage) is not published, so this repo does not build.
 
-В репозитории нет файлов, которые делают основную работу:
+## How it works
 
-- разбор демки и декодирование голоса (`AudioExtractor`)
-- построение голосового отпечатка (`SpeakerEmbedder`, `VoiceProfileBuilder`, `MfccExtractor`)
-- сравнение и кластеризация (`SimilarityEngine`)
-- слой работы с базой (`ProfileDatabase`, `BatchProcessor`)
+1. A `.dem` or `.dem.zst` is uploaded.
+2. Each player's Opus voice packets are decoded and split into clips on pauses.
+3. A [WeSpeaker ResNet34](https://huggingface.co/Wespeaker/wespeaker-voxceleb-resnet34-LM) ONNX model turns a player's speech into a 256-dim vector.
+4. Vectors for one SteamID are averaged across demos, weighted by speaking time.
+5. Profiles are compared by cosine similarity. Players with under 10s of speech are skipped.
+6. Accounts are grouped with complete linkage: an account joins a group only if it matches every member, so A≈B and B≈C never merges A with C.
 
-Они не выложены намеренно. Проект из этого репозитория не собирается: `docker compose build` упадёт на компиляции. Здесь только API, веб-интерфейс, модели данных и схема БД, чтобы было видно, как устроено приложение.
+Demos are deduplicated by SHA-256. Clips are kept as WAV, so any match can be checked by ear.
 
-## Как обрабатывается демка
+## UI
 
-От загрузки демки до групп похожих аккаунтов шесть шагов:
+| Tab | Shows |
+|---|---|
+| **Upload** | demo upload and processing |
+| **Matches** | account pairs above the threshold, optionally only pairs with different names |
+| **Players** | search by name or SteamID, demo history, similar voices |
+| **Identity Groups** | accounts likely owned by one person; confidence ≥ 0.90 high, ≥ 0.80 medium, ≥ 0.70 low |
+| **Compare** | two players side by side, per-demo similarity, audio clips |
 
-1. Демка (`.dem` или `.dem.zst`) загружается через интерфейс или API.
-2. Из демки вытаскиваются голосовые пакеты (Opus) каждого игрока вместе со SteamID, ником, командой и раундом. Голос режется на фрагменты по паузам и сохраняется в WAV.
-3. Из голоса игрока считается 256-мерный вектор. Для этого используется модель [WeSpeaker ResNet34](https://huggingface.co/Wespeaker/wespeaker-voxceleb-resnet34-LM) в ONNX, Dockerfile скачивает её при сборке.
-4. Векторы одного SteamID из разных демок усредняются в общий профиль, с весом по длительности речи.
-5. Профили сравниваются косинусным сходством. Игроки, которые говорили меньше 10 секунд, в сравнение не попадают.
-6. Похожие аккаунты собираются в группы. Аккаунт попадает в группу, только если он похож на каждого её участника, а не на одного из них. Так цепочка «A похож на B, B похож на C» не склеивает A и C в одного человека.
+<details>
+<summary><b>API</b></summary>
 
-Демка распознаётся по SHA-256, повторно она не обрабатывается. После обработки исходный файл удаляется, а WAV-фрагменты остаются, чтобы результат можно было проверить на слух.
-
-## Вкладки интерфейса
-
-Интерфейс состоит из пяти вкладок:
-
-- **Upload**: загрузка демок и запуск обработки
-- **Matches**: пары аккаунтов со сходством выше порога, можно оставить только пары с разными никами
-- **Players**: поиск по нику или SteamID, история появлений в демках, похожие голоса
-- **Identity Groups**: группы аккаунтов, которые по голосу принадлежат одному человеку; уверенность считается по минимальному сходству внутри группы: от 0.90 высокая, от 0.80 средняя, от 0.70 низкая
-- **Compare**: два игрока рядом, общее сходство, сходство по каждой демке и аудиофрагменты обоих
-
-## Эндпоинты API
-
-| Метод | Путь | Что делает |
+| Method | Path | |
 |---|---|---|
-| POST | `/api/upload` | загрузка `.dem` / `.dem.zst` (multipart, до 1 ГБ) |
-| POST | `/api/process` | обработка всех демок из `uploads/`, возвращает `jobId` |
-| POST | `/api/reprocess` | пересчёт векторов по сохранённым WAV |
-| GET | `/api/jobs/{id}` | статус задачи |
-| POST | `/api/import-faceit` | импорт матча по ссылке FACEIT |
-| GET | `/api/stats` | число демок, игроков, совпадений |
-| GET | `/api/demos`, `/api/demos/{id}` | демки и игроки в них |
-| GET | `/api/matches` | пары; параметры `threshold`, `diffNames`, `map` |
-| GET | `/api/players` | список игроков; `search`, `minSpeaking` |
-| GET | `/api/players/{steamId}` | профиль и история |
-| GET | `/api/players/{steamId}/similar` | похожие голоса; `threshold` (по умолчанию 0.70) |
-| GET | `/api/players/{steamId}/audio` | аудиофрагменты игрока |
-| GET | `/api/compare/{id1}/{id2}` | сравнение двух игроков |
-| GET | `/api/clusters` | группы; `threshold` (по умолчанию 0.85) |
-| GET | `/api/histogram` | распределение сходства между всеми парами |
-| GET | `/api/diag/segment-test` | проверка: фрагменты одного игрока должны быть ближе друг к другу, чем к чужим |
-| DELETE | `/api/data` | удалить всё |
+| POST | `/api/upload` | upload `.dem` / `.dem.zst`, up to 1 GB |
+| POST | `/api/process` | process everything in `uploads/`, returns `jobId` |
+| POST | `/api/reprocess` | recompute vectors from stored WAV clips |
+| GET | `/api/jobs/{id}` | job status |
+| POST | `/api/import-faceit` | import a match by FACEIT link |
+| GET | `/api/stats` | demo, player and match counts |
+| GET | `/api/demos`, `/api/demos/{id}` | demos and their players |
+| GET | `/api/matches` | pairs; `threshold`, `diffNames`, `map` |
+| GET | `/api/players` | players; `search`, `minSpeaking` |
+| GET | `/api/players/{steamId}` | profile and history |
+| GET | `/api/players/{steamId}/similar` | similar voices; `threshold` (0.70) |
+| GET | `/api/players/{steamId}/audio` | player's clips |
+| GET | `/api/compare/{id1}/{id2}` | compare two players |
+| GET | `/api/clusters` | identity groups; `threshold` (0.85) |
+| GET | `/api/histogram` | similarity distribution |
+| GET | `/api/diag/segment-test` | checks that a player's clips match each other better than other players |
+| DELETE | `/api/data` | wipe everything |
 
-## Стек и файлы
+</details>
 
-Бэкенд на .NET 9 (ASP.NET Core minimal API) и SQLite. Демки разбирает [DemoFile](https://github.com/saul/demofile-net), Opus декодирует Concentus, модель запускается через ONNX Runtime. Фронтенд написан на JS без фреймворков, стили на Tailwind. Запускается в Docker.
+## Stack
 
-```text
-Program.cs              эндпоинты и фоновые задачи
-Core/Models.cs          модели данных
-Core/DatabaseSchema.cs  схема SQLite
-wwwroot/                интерфейс
-Dockerfile              сборка и загрузка модели
-docker-compose.yml      запуск, данные в ./data, демки в ./uploads
-.env.example            переменные окружения
-```
+.NET 9 minimal API · SQLite · [DemoFile](https://github.com/saul/demofile-net) · Concentus (Opus) · ONNX Runtime · vanilla JS + Tailwind · Docker
 
-## Известные проблемы
+## Known issues
 
-Четыре вещи, о которых стоит знать заранее:
+- FACEIT import is broken: demo downloads need a Downloads API key, and the old CDN hosts no longer resolve.
+- New CS2 patches can break demo parsing until DemoFile is updated.
+- No auth, open CORS, and `DELETE /api/data` wipes the database. Local use only.
 
-- Импорт с FACEIT не работает. Для скачивания демки нужен ключ с доступом к Downloads API, а прямые CDN-адреса FACEIT больше не отвечают, поэтому демки приходится скачивать вручную.
-- Демки из новых патчей CS2 может не разобрать текущая версия DemoFile. Помогает обновление пакета.
-- `/api/process` перед стартом хеширует все файлы в `uploads/`. Если там лежат старые демки, каждый запуск тратит на это минуты.
-- Авторизации нет, CORS открыт для всех, `DELETE /api/data` стирает базу без подтверждения. Приложение рассчитано только на локальный запуск.
+## Data
 
-## Персональные данные
+Voice recordings and SteamIDs are personal data. The database, audio and demos are not in this repo.
 
-Голос и SteamID относятся к персональным данным. База, аудио и демки в репозиторий не входят и не должны туда попадать.
+## License
 
-## Лицензия
-
-Лицензии нет, все права защищены. Код можно читать, но не копировать, изменять или использовать в своих проектах без разрешения автора.
+None. All rights reserved: you can read the code, not reuse it.
