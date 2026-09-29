@@ -616,9 +616,11 @@
           try {
             const job = await api(`/jobs/${jobId}`);
             btn.textContent = `Reprocessing... ${job.processedDemos || 0}/${job.totalDemos || '?'}`;
-            if (job.state === 'done' || job.state === 'error') {
+            const s = (job.state || '').toLowerCase();
+            const ok = s === 'done' || s === 'completed';
+            if (ok || s === 'failed' || s === 'error') {
               clearInterval(poll); btn.disabled = false; btn.textContent = 'Reprocess All';
-              if (job.state === 'done') { showToast(`Reprocessed ${job.processedDemos} demos, ${job.playersFound} profiles`, 'success'); clearAllCaches(); loadStats(); }
+              if (ok) { showToast(`Reprocessed ${job.processedDemos} demos, ${job.playersFound} profiles`, 'success'); clearAllCaches(); loadStats(); }
               else showToast('Reprocessing failed', 'error');
             }
           } catch { clearInterval(poll); btn.disabled = false; btn.textContent = 'Reprocess All'; }
