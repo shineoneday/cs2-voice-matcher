@@ -222,7 +222,7 @@
     dz.addEventListener('click', () => fi.click());
     dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
     dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
-    dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag-over'); const files = Array.from(e.dataTransfer.files).filter(f => f.name.endsWith('.dem') || f.name.endsWith('.dem.zst')); if (!files.length) { showToast('Only .dem / .dem.zst files accepted', 'error'); return; } addFiles(files); });
+    dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag-over'); addFiles(Array.from(e.dataTransfer.files)); });
     fi.addEventListener('change', () => { addFiles(Array.from(fi.files)); fi.value = ''; });
     $('#btn-upload-all').addEventListener('click', uploadAll);
     $('#btn-process').addEventListener('click', processAll);
@@ -275,7 +275,9 @@
   }
 
   function addFiles(newFiles) {
-    for (const f of newFiles) if (!state.files.find(sf => sf.file.name === f.name)) state.files.push({ file: f, status: 'queued' });
+    const valid = newFiles.filter(f => f.name.endsWith('.dem') || f.name.endsWith('.dem.zst'));
+    if (valid.length < newFiles.length) showToast('Only .dem / .dem.zst files accepted', 'error');
+    for (const f of valid) if (!state.files.find(sf => sf.file.name === f.name)) state.files.push({ file: f, status: 'queued' });
     renderFileList();
   }
 
