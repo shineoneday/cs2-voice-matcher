@@ -556,7 +556,9 @@
 
   async function loadGroups() {
     const ld = $('#groups-loading'), list = $('#groups-list'), em = $('#groups-empty');
+    const btn = $('#btn-compute-groups');
     ld.classList.remove('hidden'); list.innerHTML = ''; em.classList.add('hidden');
+    if (btn) btn.disabled = true;
     const threshold = $('#group-threshold').value;
     try {
       const data = await api(`/clusters?threshold=${threshold}`); ld.classList.add('hidden');
@@ -603,6 +605,7 @@
       list.querySelectorAll('.clickable-player').forEach(r => r.addEventListener('click', () => { switchTab('players'); showPlayerDetail(r.dataset.steamId); }));
       list.querySelectorAll('.matrix-sim-btn').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); openCompare(b.dataset.s1, b.dataset.s2); }));
     } catch (e) { ld.classList.add('hidden'); em.classList.remove('hidden'); showToast(`Failed: ${e.message}`, 'error'); }
+    finally { if (btn) btn.disabled = false; }
   }
 
   // ════════════════════════════════════════════
