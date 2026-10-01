@@ -330,9 +330,11 @@
 
   async function pollJob(jobId, textEl, barEl, startPct = 0) {
     return new Promise(resolve => {
+      let errors = 0;
       const iv = setInterval(async () => {
         try {
           const j = await api(`/jobs/${jobId}`);
+          errors = 0;
           const failed = j.failedDemos || 0, handled = j.processedDemos + failed;
           if (j.totalDemos > 0) barEl.style.width = `${startPct + Math.round((handled / j.totalDemos) * (100 - startPct))}%`;
           if (textEl) textEl.textContent = `Processing ${handled}/${j.totalDemos}... ${j.playersFound} players`;
@@ -344,7 +346,10 @@
             resolve();
           }
           else if (s === 'failed' || s === 'error') { clearInterval(iv); if (textEl) textEl.textContent = 'Failed'; showToast('Failed', 'error'); resolve(); }
-        } catch { clearInterval(iv); resolve(); }
+        } catch {
+          // Tolerate transient status-poll failures; only give up after several in a row
+          if (++errors >= 3) { clearInterval(iv); if (textEl) textEl.textContent = 'Lost connection to job'; showToast('Lost connection while tracking job', 'error'); resolve(); }
+        }
       }, 2000);
     });
   }
