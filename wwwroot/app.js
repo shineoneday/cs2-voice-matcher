@@ -333,10 +333,16 @@
       const iv = setInterval(async () => {
         try {
           const j = await api(`/jobs/${jobId}`);
-          if (j.totalDemos > 0) barEl.style.width = `${startPct + Math.round((j.processedDemos / j.totalDemos) * (100 - startPct))}%`;
-          if (textEl) textEl.textContent = `Processing ${j.processedDemos}/${j.totalDemos}... ${j.playersFound} players`;
+          const failed = j.failedDemos || 0, handled = j.processedDemos + failed;
+          if (j.totalDemos > 0) barEl.style.width = `${startPct + Math.round((handled / j.totalDemos) * (100 - startPct))}%`;
+          if (textEl) textEl.textContent = `Processing ${handled}/${j.totalDemos}... ${j.playersFound} players`;
           const s = (j.state || '').toLowerCase();
-          if (s === 'done' || s === 'completed') { clearInterval(iv); barEl.style.width = '100%'; if (textEl) textEl.textContent = `Done! ${j.playersFound} players`; showToast('Done', 'success'); resolve(); }
+          if (s === 'done' || s === 'completed') {
+            clearInterval(iv); barEl.style.width = '100%';
+            if (textEl) textEl.textContent = `Done! ${j.playersFound} players${failed ? `, ${failed} demo(s) failed` : ''}`;
+            if (failed) showToast(`${failed} demo(s) failed to process`, 'warning'); else showToast('Done', 'success');
+            resolve();
+          }
           else if (s === 'failed' || s === 'error') { clearInterval(iv); if (textEl) textEl.textContent = 'Failed'; showToast('Failed', 'error'); resolve(); }
         } catch { clearInterval(iv); resolve(); }
       }, 2000);
