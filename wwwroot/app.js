@@ -26,7 +26,12 @@
   async function api(path, options = {}) {
     const url = path.startsWith('http') ? path : `/api${path.startsWith('/') ? '' : '/'}${path}`;
     const res = await fetch(url, options);
-    if (!res.ok) { const text = await res.text(); throw new Error(text || `HTTP ${res.status}`); }
+    if (!res.ok) {
+      const text = await res.text();
+      let msg = text;
+      try { msg = JSON.parse(text).error || text; } catch {}
+      throw new Error(msg || `HTTP ${res.status}`);
+    }
     const ct = res.headers.get('content-type');
     return ct && ct.includes('application/json') ? res.json() : res.text();
   }
@@ -265,8 +270,7 @@
       }
       input.value = '';
     } catch (e) {
-      let msg = e.message; try { msg = JSON.parse(e.message).error || msg; } catch {}
-      infoEl.innerHTML = `<span class="text-error text-sm">${escapeHtml(msg)}</span>`;
+      infoEl.innerHTML = `<span class="text-error text-sm">${escapeHtml(e.message)}</span>`;
       showToast(`FACEIT import failed`, 'error');
     } finally {
       btn.disabled = false; input.disabled = false;
