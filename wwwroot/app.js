@@ -632,18 +632,22 @@
       btn.disabled = true; btn.textContent = 'Reprocessing...';
       try {
         const { jobId } = await api('/reprocess', { method: 'POST' });
+        let errors = 0;
         const poll = setInterval(async () => {
           try {
             const job = await api(`/jobs/${jobId}`);
+            errors = 0;
             btn.textContent = `Reprocessing... ${job.processedDemos || 0}/${job.totalDemos || '?'}`;
             const s = (job.state || '').toLowerCase();
             const ok = s === 'done' || s === 'completed';
             if (ok || s === 'failed' || s === 'error') {
               clearInterval(poll); btn.disabled = false; btn.textContent = 'Reprocess All';
               if (ok) { showToast(`Reprocessed ${job.processedDemos} demos, ${job.playersFound} profiles`, 'success'); clearAllCaches(); loadStats(); }
-              else showToast('Reprocessing failed', 'error');
+              else showToast(`Reprocessing failed${job.currentDemo ? `: ${job.currentDemo}` : ''}`, 'error');
             }
-          } catch { clearInterval(poll); btn.disabled = false; btn.textContent = 'Reprocess All'; }
+          } catch {
+            if (++errors >= 3) { clearInterval(poll); btn.disabled = false; btn.textContent = 'Reprocess All'; showToast('Lost connection while tracking reprocess', 'error'); }
+          }
         }, 1000);
       } catch (e) { btn.disabled = false; btn.textContent = 'Reprocess All'; showToast(`Failed: ${e.message}`, 'error'); }
     });
