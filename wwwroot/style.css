@@ -120,6 +120,7 @@ body {
   cursor: pointer; transition: border-color 0.2s, background 0.2s;
 }
 .drop-zone:hover { border-color: var(--text-dim); background: var(--surface-2); }
+.drop-zone:focus-visible { outline: none; border-color: var(--accent); }
 .drop-zone.drag-over { border-color: var(--accent); background: rgba(86,156,214,0.06); }
 
 /* ---- Tables ---- */
