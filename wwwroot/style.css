@@ -462,6 +462,7 @@ body {
 @media (max-width: 768px) {
   .tab-btn { padding: 10px 10px; font-size: 12px; }
   .tab-btn svg { display: none; }
+  nav > div { overflow-x: auto; }
   .compare-header { flex-direction: column; gap: 16px; }
   .global-search-input { width: 140px; }
   .global-search-input:focus { width: 180px; }
