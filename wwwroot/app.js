@@ -615,6 +615,7 @@
 
   function initDeleteButton() {
     const btn = $('#btn-delete-data'); if (!btn) return;
+    const compareEmptyHtml = $('#compare-content').innerHTML;
     btn.addEventListener('click', async () => {
       if (!confirm('Delete ALL data? This cannot be undone.')) return;
       try {
@@ -622,6 +623,10 @@
         clearAllCaches(); stopAudio(); state.files = []; renderFileList(); loadStats();
         showToast('All data deleted', 'success');
         ['matches-list', 'player-list', 'groups-list'].forEach(id => { const el = $(`#${id}`); if (el) el.innerHTML = ''; });
+        $('#groups-empty').classList.remove('hidden');
+        $('#compare-content').innerHTML = compareEmptyHtml; state.compareMode = null;
+        // Re-render the open tab so it shows its empty state instead of stale data
+        switchTab(state.currentTab, false);
       } catch (e) { showToast(`Failed: ${e.message}`, 'error'); }
     });
   }
