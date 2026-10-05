@@ -458,6 +458,8 @@
     hdr.innerHTML = '<div class="spinner"></div>'; stats.innerHTML = ''; demos.innerHTML = ''; sim.innerHTML = '';
     try {
       const p = await api(`/players/${steamId}`);
+      // Another player was opened while this one loaded; don't overwrite their view
+      if (state.currentPlayer !== steamId) return;
       const name = (p.names && p.names[0]) || steamId, allNames = p.names ? p.names.join(', ') : name;
       hdr.innerHTML = `<h2 class="text-lg font-semibold">${escapeHtml(name)}</h2><p class="text-sm text-text-dim mt-1">${escapeHtml(allNames)}</p>`;
       stats.innerHTML = `<div class="stat-card"><div class="stat-label">SteamID</div><div class="stat-value mono">${escapeHtml(steamId)}<button class="copy-btn" data-copy="${escapeHtml(steamId)}" title="Copy"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></div></div><div class="stat-card"><div class="stat-label">Names</div><div class="stat-value">${p.names ? p.names.length : 1}</div></div><div class="stat-card"><div class="stat-label">Demos</div><div class="stat-value">${p.demos ?? 0}</div></div><div class="stat-card"><div class="stat-label">Speaking</div><div class="stat-value">${formatDuration(p.speakingSeconds ?? 0)}</div></div>`;
@@ -478,14 +480,16 @@
         }));
       }
       loadSimilarPlayers(steamId);
-    } catch (e) { hdr.innerHTML = `<p class="text-sm text-error">Failed: ${escapeHtml(e.message)}</p>`; }
+    } catch (e) { if (state.currentPlayer === steamId) hdr.innerHTML = `<p class="text-sm text-error">Failed: ${escapeHtml(e.message)}</p>`; }
   }
 
   async function loadSimilarPlayers(steamId) {
     const ld = $('#similar-loading'), res = $('#similar-results');
     ld.classList.remove('hidden'); res.innerHTML = '';
     try {
-      const data = await api(`/players/${steamId}/similar`); ld.classList.add('hidden');
+      const data = await api(`/players/${steamId}/similar`);
+      if (state.currentPlayer !== steamId) return;
+      ld.classList.add('hidden');
       const similar = Array.isArray(data) ? data : [];
       if (!similar.length) { res.innerHTML = '<p class="text-sm text-text-dim py-4">No similar voices found at 70% threshold</p>'; return; }
       res.innerHTML = '<div class="similar-grid">' + similar.map(s => {
@@ -494,7 +498,7 @@
       }).join('') + '</div>';
       res.querySelectorAll('.similar-card').forEach(c => c.addEventListener('click', e => { if (e.target.closest('.btn-compare-small')) return; showPlayerDetail(c.dataset.steamId); }));
       res.querySelectorAll('.btn-compare-small').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); openCompare(steamId, b.dataset.compareId); }));
-    } catch (e) { ld.classList.add('hidden'); res.innerHTML = `<p class="text-sm text-error">Failed: ${escapeHtml(e.message)}</p>`; }
+    } catch (e) { if (state.currentPlayer !== steamId) return; ld.classList.add('hidden'); res.innerHTML = `<p class="text-sm text-error">Failed: ${escapeHtml(e.message)}</p>`; }
   }
 
   // ════════════════════════════════════════════
