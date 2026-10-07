@@ -204,7 +204,7 @@
 
   function switchTab(tab, updateHash = true) {
     state.currentTab = tab; stopAudio();
-    $$('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    $$('.tab-btn').forEach(b => { const on = b.dataset.tab === tab; b.classList.toggle('active', on); b.setAttribute('aria-selected', on); });
     $$('.tab-content').forEach(el => { const t = el.id === `tab-${tab}`; el.classList.toggle('hidden', !t); if (t) { el.style.animation = 'none'; el.offsetHeight; el.style.animation = ''; } });
     if (updateHash) history.replaceState(null, '', `#${tab}`);
     loadStats();
