@@ -208,7 +208,7 @@
     $$('.tab-content').forEach(el => { const t = el.id === `tab-${tab}`; el.classList.toggle('hidden', !t); if (t) { el.style.animation = 'none'; el.offsetHeight; el.style.animation = ''; } });
     if (updateHash) history.replaceState(null, '', `#${tab}`);
     loadStats();
-    if (tab === 'matches') { loadDemos(); loadMatchedSteamIds(); }
+    if (tab === 'matches') { loadMatchedSteamIds(); return loadDemos(); }
     else if (tab === 'players' && !state.playerSearchCache) loadPlayers();
   }
 
@@ -362,6 +362,8 @@
   async function loadDemos() {
     const ld = $('#matches-loading'), list = $('#matches-list'), em = $('#matches-empty');
     ld.classList.remove('hidden'); list.innerHTML = ''; em.classList.add('hidden');
+    // Cards are re-rendered collapsed, so nothing is expanded anymore
+    state.expandedDemo = null;
     try {
       const demos = await api('/demos'); ld.classList.add('hidden');
       const arr = Array.isArray(demos) ? demos : [];
@@ -402,8 +404,7 @@
   }
 
   async function navigateToDemo(demoId) {
-    switchTab('matches');
-    if (!state.demosCache) await loadDemos();
+    await switchTab('matches');
     const card = document.querySelector(`.demo-card[data-demo-id="${demoId}"]`);
     if (card) {
       card.scrollIntoView({ behavior: 'smooth', block: 'start' });
