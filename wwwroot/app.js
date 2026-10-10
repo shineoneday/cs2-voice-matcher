@@ -370,7 +370,10 @@
       state.demosCache = arr;
       if (!arr.length) { em.classList.remove('hidden'); return; }
       list.innerHTML = arr.map(d => renderDemoCard(d)).join('');
-      list.querySelectorAll('.demo-card-header').forEach(h => h.addEventListener('click', () => toggleDemoDetail(parseInt(h.dataset.demoId))));
+      list.querySelectorAll('.demo-card-header').forEach(h => {
+        h.addEventListener('click', () => toggleDemoDetail(parseInt(h.dataset.demoId)));
+        h.addEventListener('keydown', e => { if (e.target === h && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); toggleDemoDetail(parseInt(h.dataset.demoId)); } });
+      });
     } catch (e) { ld.classList.add('hidden'); em.classList.remove('hidden'); showToast(`Failed: ${e.message}`, 'error'); }
   }
 
@@ -379,15 +382,15 @@
     const title = d.title || d.fileName || `Demo #${d.demoId}`;
     const matchId = extractMatchId(d.fileName);
     const faceitBtn = matchId ? `<a href="https://www.faceit.com/en/cs2/room/${matchId}" target="_blank" rel="noopener" class="faceit-link-icon" title="Open on FACEIT" onclick="event.stopPropagation()"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>` : '';
-    return `<div class="demo-card card" data-demo-id="${d.demoId}"><div class="demo-card-header p-4 cursor-pointer flex items-center justify-between" data-demo-id="${d.demoId}"><div class="flex items-center gap-3 flex-1 min-w-0">${map}<span class="font-medium text-sm truncate">${escapeHtml(title)}</span>${faceitBtn}</div><div class="flex items-center gap-4 text-xs text-text-dim flex-shrink-0"><span>${d.playerCount ?? 0} players</span><span>${formatDate(d.processedAt)}</span><svg class="chevron w-4 h-4 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div></div><div class="demo-card-body" id="demo-detail-${d.demoId}"><div class="demo-detail-content px-4 pb-4"><div class="flex justify-center py-6"><div class="spinner"></div></div></div></div></div>`;
+    return `<div class="demo-card card" data-demo-id="${d.demoId}"><div class="demo-card-header p-4 cursor-pointer flex items-center justify-between" data-demo-id="${d.demoId}" role="button" tabindex="0" aria-expanded="false" aria-controls="demo-detail-${d.demoId}"><div class="flex items-center gap-3 flex-1 min-w-0">${map}<span class="font-medium text-sm truncate">${escapeHtml(title)}</span>${faceitBtn}</div><div class="flex items-center gap-4 text-xs text-text-dim flex-shrink-0"><span>${d.playerCount ?? 0} players</span><span>${formatDate(d.processedAt)}</span><svg class="chevron w-4 h-4 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div></div><div class="demo-card-body" id="demo-detail-${d.demoId}"><div class="demo-detail-content px-4 pb-4"><div class="flex justify-center py-6"><div class="spinner"></div></div></div></div></div>`;
   }
 
   async function toggleDemoDetail(demoId) {
     const body = $(`#demo-detail-${demoId}`); if (!body) return;
-    const card = body.closest('.demo-card'), chevron = card?.querySelector('.chevron');
-    if (state.expandedDemo === demoId) { body.classList.remove('open'); if (chevron) chevron.style.transform = ''; state.expandedDemo = null; stopAudio(); return; }
-    if (state.expandedDemo != null) { const prev = $(`#demo-detail-${state.expandedDemo}`); if (prev) { prev.classList.remove('open'); prev.closest('.demo-card')?.querySelector('.chevron')?.removeAttribute('style'); } stopAudio(); }
-    body.classList.add('open'); if (chevron) chevron.style.transform = 'rotate(180deg)'; state.expandedDemo = demoId;
+    const card = body.closest('.demo-card'), chevron = card?.querySelector('.chevron'), header = card?.querySelector('.demo-card-header');
+    if (state.expandedDemo === demoId) { body.classList.remove('open'); if (chevron) chevron.style.transform = ''; header?.setAttribute('aria-expanded', 'false'); state.expandedDemo = null; stopAudio(); return; }
+    if (state.expandedDemo != null) { const prev = $(`#demo-detail-${state.expandedDemo}`); if (prev) { prev.classList.remove('open'); prev.closest('.demo-card')?.querySelector('.chevron')?.removeAttribute('style'); prev.closest('.demo-card')?.querySelector('.demo-card-header')?.setAttribute('aria-expanded', 'false'); } stopAudio(); }
+    body.classList.add('open'); if (chevron) chevron.style.transform = 'rotate(180deg)'; header?.setAttribute('aria-expanded', 'true'); state.expandedDemo = demoId;
     const content = body.querySelector('.demo-detail-content');
     try {
       const players = await api(`/demos/${demoId}`);

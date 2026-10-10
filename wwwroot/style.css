@@ -216,6 +216,7 @@ body {
   cursor: pointer; user-select: none;
 }
 .demo-card-header:hover { background: var(--surface-2); }
+.demo-card-header:focus-visible { outline: none; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--accent); }
 .demo-card-body { border-top: 1px solid var(--border); padding: 16px 18px; display: none; }
 .demo-card-body.open { display: block; animation: tabFadeIn 0.2s ease-out; }
 
