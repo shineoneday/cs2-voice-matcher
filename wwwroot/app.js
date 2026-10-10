@@ -441,18 +441,24 @@
     if (sb) sb.addEventListener('click', () => { if (state.currentPlayer) window.open(`https://steamcommunity.com/profiles/${state.currentPlayer}`, '_blank'); });
   }
 
+  let playersRequest = 0;
+
   async function loadPlayers(search = '') {
     const ld = $('#players-loading'), grid = $('#player-list'), em = $('#players-empty');
     ld.classList.remove('hidden'); grid.innerHTML = ''; em.classList.add('hidden');
     $('#players-search-view').classList.remove('hidden'); $('#player-detail').classList.add('hidden');
     let url = '/players'; if (search) url += `?search=${encodeURIComponent(search)}`;
+    // A newer search may start before this one returns (e.g. global search opens the tab and searches at once)
+    const req = ++playersRequest;
     try {
-      const data = await api(url); ld.classList.add('hidden');
+      const data = await api(url);
+      if (req !== playersRequest) return;
+      ld.classList.add('hidden');
       const players = Array.isArray(data) ? data : []; state.playerSearchCache = players;
       if (!players.length) { em.classList.remove('hidden'); return; }
       grid.innerHTML = players.map(p => `<div class="player-card" data-steam-id="${escapeHtml(p.steamId || '')}"><div class="player-name">${escapeHtml((p.names && p.names[0]) || p.steamId || '-')}</div>${p.names && p.names.length > 1 ? `<div class="text-xs text-text-dim mb-1" style="opacity:0.7">aka ${escapeHtml(p.names.slice(1).join(', '))}</div>` : ''}<div class="player-steam-id">${escapeHtml(p.steamId || '')}</div><div class="player-meta"><span>${p.demos ?? 0} demos</span><span>${formatDuration(p.speakingSeconds ?? 0)}</span></div></div>`).join('');
       grid.querySelectorAll('.player-card').forEach(c => c.addEventListener('click', () => { if (c.dataset.steamId) showPlayerDetail(c.dataset.steamId); }));
-    } catch (e) { ld.classList.add('hidden'); em.classList.remove('hidden'); showToast(`Failed to load players: ${e.message}`, 'error'); }
+    } catch (e) { if (req !== playersRequest) return; ld.classList.add('hidden'); em.classList.remove('hidden'); showToast(`Failed to load players: ${e.message}`, 'error'); }
   }
 
   async function showPlayerDetail(steamId) {
