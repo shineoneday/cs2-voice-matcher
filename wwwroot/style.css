@@ -322,6 +322,7 @@ body {
   gap: 12px;
 }
 .cluster-card-header:hover { background: var(--surface-2); }
+.cluster-card-header:focus-visible { outline: none; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--accent); }
 
 .cluster-header-left { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .cluster-header-right { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; justify-content: flex-end; }

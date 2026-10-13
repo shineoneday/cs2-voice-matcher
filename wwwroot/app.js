@@ -612,11 +612,15 @@
 
         const memberRows = members.map(m => `<tr class="clickable-player" data-steam-id="${escapeHtml(m.steamId)}"><td>${escapeHtml((m.names || []).join(', ') || '-')}</td><td class="mono text-xs">${escapeHtml(m.steamId || '')}</td><td>${m.demos ?? '-'}</td><td>${formatDuration(m.speakingSeconds || 0)}</td></tr>`).join('');
 
-        return `<div class="cluster-card"><div class="cluster-card-header"><div class="cluster-header-left"><span class="cluster-title">Group #${i + 1}</span><span class="confidence-badge" style="background:${tc}20;color:${tc};border:1px solid ${tc}40">${tierLabel(tier)}</span><span class="cluster-sim-label">min ${(cluster.minSimilarity * 100).toFixed(1)}%</span></div><div class="cluster-header-right"><span class="cluster-names">${escapeHtml(allNames.join(', '))}</span><span class="cluster-count">${members.length} accounts</span><svg class="chevron w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div></div><div class="cluster-card-body">${matrix}<div class="card overflow-hidden mt-3"><table class="data-table"><thead><tr><th>Names</th><th>SteamID</th><th>Demos</th><th>Speaking</th></tr></thead><tbody>${memberRows}</tbody></table></div></div></div>`;
+        return `<div class="cluster-card"><div class="cluster-card-header" role="button" tabindex="0" aria-expanded="false"><div class="cluster-header-left"><span class="cluster-title">Group #${i + 1}</span><span class="confidence-badge" style="background:${tc}20;color:${tc};border:1px solid ${tc}40">${tierLabel(tier)}</span><span class="cluster-sim-label">min ${(cluster.minSimilarity * 100).toFixed(1)}%</span></div><div class="cluster-header-right"><span class="cluster-names">${escapeHtml(allNames.join(', '))}</span><span class="cluster-count">${members.length} accounts</span><svg class="chevron w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div></div><div class="cluster-card-body">${matrix}<div class="card overflow-hidden mt-3"><table class="data-table"><thead><tr><th>Names</th><th>SteamID</th><th>Demos</th><th>Speaking</th></tr></thead><tbody>${memberRows}</tbody></table></div></div></div>`;
       }).join('');
 
       // Events
-      list.querySelectorAll('.cluster-card-header').forEach(h => h.addEventListener('click', () => { const b = h.nextElementSibling; b.classList.toggle('open'); h.querySelector('.chevron').classList.toggle('open'); }));
+      list.querySelectorAll('.cluster-card-header').forEach(h => {
+        const toggle = () => { const open = h.nextElementSibling.classList.toggle('open'); h.querySelector('.chevron').classList.toggle('open', open); h.setAttribute('aria-expanded', open); };
+        h.addEventListener('click', toggle);
+        h.addEventListener('keydown', e => { if (e.target === h && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); toggle(); } });
+      });
       list.querySelectorAll('.clickable-player').forEach(r => r.addEventListener('click', () => { switchTab('players'); showPlayerDetail(r.dataset.steamId); }));
       list.querySelectorAll('.matrix-sim-btn').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); openCompare(b.dataset.s1, b.dataset.s2); }));
     } catch (e) { ld.classList.add('hidden'); em.classList.remove('hidden'); showToast(`Failed: ${e.message}`, 'error'); }
