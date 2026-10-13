@@ -456,8 +456,11 @@
       ld.classList.add('hidden');
       const players = Array.isArray(data) ? data : []; state.playerSearchCache = players;
       if (!players.length) { em.classList.remove('hidden'); return; }
-      grid.innerHTML = players.map(p => `<div class="player-card" data-steam-id="${escapeHtml(p.steamId || '')}"><div class="player-name">${escapeHtml((p.names && p.names[0]) || p.steamId || '-')}</div>${p.names && p.names.length > 1 ? `<div class="text-xs text-text-dim mb-1" style="opacity:0.7">aka ${escapeHtml(p.names.slice(1).join(', '))}</div>` : ''}<div class="player-steam-id">${escapeHtml(p.steamId || '')}</div><div class="player-meta"><span>${p.demos ?? 0} demos</span><span>${formatDuration(p.speakingSeconds ?? 0)}</span></div></div>`).join('');
-      grid.querySelectorAll('.player-card').forEach(c => c.addEventListener('click', () => { if (c.dataset.steamId) showPlayerDetail(c.dataset.steamId); }));
+      grid.innerHTML = players.map(p => `<div class="player-card" role="button" tabindex="0" data-steam-id="${escapeHtml(p.steamId || '')}"><div class="player-name">${escapeHtml((p.names && p.names[0]) || p.steamId || '-')}</div>${p.names && p.names.length > 1 ? `<div class="text-xs text-text-dim mb-1" style="opacity:0.7">aka ${escapeHtml(p.names.slice(1).join(', '))}</div>` : ''}<div class="player-steam-id">${escapeHtml(p.steamId || '')}</div><div class="player-meta"><span>${p.demos ?? 0} demos</span><span>${formatDuration(p.speakingSeconds ?? 0)}</span></div></div>`).join('');
+      grid.querySelectorAll('.player-card').forEach(c => {
+        c.addEventListener('click', () => { if (c.dataset.steamId) showPlayerDetail(c.dataset.steamId); });
+        c.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && c.dataset.steamId) { e.preventDefault(); showPlayerDetail(c.dataset.steamId); } });
+      });
     } catch (e) { if (req !== playersRequest) return; ld.classList.add('hidden'); em.classList.remove('hidden'); showToast(`Failed to load players: ${e.message}`, 'error'); }
   }
 

@@ -188,6 +188,7 @@ body {
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 .player-card:hover { border-color: var(--accent); background: var(--surface-2); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+.player-card:focus-visible { outline: none; border-color: var(--accent); background: var(--surface-2); }
 .player-card .player-name { font-size: 14px; font-weight: 600; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .player-card .player-steam-id { font-size: 11px; font-family: 'SF Mono', 'Cascadia Code', monospace; color: var(--text-dim); margin-bottom: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .player-card .player-meta { display: flex; gap: 12px; font-size: 12px; color: var(--text-dim); }
