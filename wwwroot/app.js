@@ -309,8 +309,14 @@
     $('#btn-upload-all').disabled = true;
     for (const item of todo) {
       item.status = 'uploading'; renderFileList();
-      try { const fd = new FormData(); fd.append('file', item.file); await api('/upload', { method: 'POST', body: fd }); item.status = 'done'; }
-      catch { item.status = 'error'; showToast(`Failed: ${item.file.name}`, 'error'); }
+      try {
+        const fd = new FormData(); fd.append('file', item.file);
+        const r = await api('/upload', { method: 'POST', body: fd });
+        // The server answers 200 with count 0 when it couldn't decompress a .dem.zst
+        if (!r.count) throw new Error('could not unpack demo');
+        item.status = 'done';
+      }
+      catch (e) { item.status = 'error'; showToast(`Failed: ${item.file.name} (${e.message})`, 'error'); }
       renderFileList();
     }
     const ok = state.files.filter(f => f.status === 'done').length;
